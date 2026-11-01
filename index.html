@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f5f1">
+<title>ことばの読書室｜英日翻訳</title>
+<style>
+:root{--bg:#f7f5f1;--paper:#fffefa;--ink:#292b30;--muted:#777873;--line:#e7e2d9;--accent:#7467a8;--accent2:#eee9fa;--jp-size:20px;--en-size:17px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;line-height:1.7}
+header{padding:25px 18px 18px;max-width:850px;margin:auto}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--accent);font-weight:700}
+h1{font-size:27px;line-height:1.3;margin:7px 0 6px;letter-spacing:.02em}
+.sub{margin:0;color:var(--muted);font-size:14px}
+main{max-width:850px;margin:0 auto;padding:0 14px 40px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px;box-shadow:0 3px 14px #30251a08}
+.labelrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.label{font-size:14px;font-weight:700}
+.small{font-size:12px;color:var(--muted)}
+textarea{display:block;width:100%;min-height:185px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:13px;background:#fff;color:var(--ink);font:var(--en-size)/1.65 -apple-system,BlinkMacSystemFont,sans-serif;outline:none}
+textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #7467a81c}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+button{border:0;border-radius:12px;padding:12px 15px;font:600 14px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}
+.primary{background:var(--accent);color:white;flex:1;min-width:145px}
+.secondary{background:var(--accent2);color:#51447f}
+button:disabled{opacity:.55;cursor:wait}
+.settings{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.settinggroup{display:flex;align-items:center;gap:8px}
+.settinggroup button{padding:7px 11px;min-width:38px}
+.result{font-size:var(--jp-size);line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere;min-height:80px}
+.placeholder{color:#99958f;font-size:15px}
+.status{font-size:13px;color:var(--muted);margin-top:10px;min-height:1.4em}
+footer{max-width:850px;margin:auto;padding:0 18px 28px;color:var(--muted);font-size:12px;line-height:1.7}
+.hidden{display:none!important}
+@media(min-width:700px){header{padding-top:34px}main{padding:0 20px 50px}.panel{padding:21px}textarea{min-height:220px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">ENGLISH → JAPANESE</div>
+  <h1>ことばの読書室 📚</h1>
+  <p class="sub">英文を貼り付けて、ゆったり読める日本語に。</p>
+</header>
+<main>
+  <section class="panel">
+    <div class="labelrow"><span class="label">英文</span><span class="small" id="count">0 文字</span></div>
+    <textarea id="source" placeholder="ここに英文を貼り付けてください…" spellcheck="false"></textarea>
+    <div class="actions">
+      <button class="primary" id="translate">日本語に翻訳する</button>
+      <button class="secondary" id="clear">クリア</button>
+    </div>
+    <div class="status" id="status" role="status"></div>
+  </section>
+  <section class="panel">
+    <div class="settings">
+      <span class="label">翻訳結果</span>
+      <div class="settinggroup"><span class="small">文字サイズ</span><button class="secondary" id="smaller" aria-label="文字を小さく">A−</button><button class="secondary" id="larger" aria-label="文字を大きく">A＋</button></div>
+    </div>
+    <div id="result" class="result placeholder">翻訳結果がここに表示されます。</div>
+    <div class="actions"><button class="secondary" id="copy">翻訳文をコピー</button><button class="secondary" id="toggle">原文を表示</button></div>
+    <div id="original" class="hidden" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--en-size);line-height:1.8"></div>
+  </section>
+  <section class="panel">
+    <div class="small">読みやすさ設定</div>
+    <div class="settings" style="margin-top:8px">
+      <span>日本語の文字サイズ</span><span id="sizeLabel">20 px</span>
+    </div>
+    <input id="size" type="range" min="16" max="30" value="20" style="width:100%;accent-color:var(--accent);margin-top:10px">
+  </section>
+</main>
+<footer>
+  翻訳にはインターネット接続が必要です。入力した英文は翻訳サービス（MyMemory）に送信されます。個人情報や機密情報は貼り付けないでください。長文は分割して翻訳するため、文脈によっては訳が不自然になることがあります。
+</footer>
+<script>
+const source=document.getElementById('source'), result=document.getElementById('result'), status=document.getElementById('status');
+const translateBtn=document.getElementById('translate');
+source.addEventListener('input',()=>document.getElementById('count').textContent=source.value.length.toLocaleString()+' 文字');
+function chunksByParagraph(text, limit=430){
+  const paras=text.replace(/\r\n/g,'\n').split(/\n{2,}/);
+  const out=[];
+  for(const para of paras){
+    if(para.length<=limit){if(para.trim())out.push(para);else out.push('');continue;}
+    let remaining=para;
+    while(remaining.length>limit){
+      let cut=Math.max(remaining.lastIndexOf('. ',limit),remaining.lastIndexOf('? ',limit),remaining.lastIndexOf('! ',limit),remaining.lastIndexOf('; ',limit),remaining.lastIndexOf(', ',limit),remaining.lastIndexOf(' ',limit));
+      if(cut<Math.floor(limit*.55))cut=limit;
+      else if(remaining[cut]===' ')cut+=1;
+      out.push(remaining.slice(0,cut).trim());
+      remaining=remaining.slice(cut).trim();
+    }
+    if(remaining)out.push(remaining);
+  }
+  return out;
+}
+async function translatePart(part){
+  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(part)+'&langpair=en%7Cja';
+  const response=await fetch(url);
+  if(!response.ok)throw new Error('翻訳サービスに接続できませんでした。');
+  const data=await response.json();
+  if(data.responseStatus && data.responseStatus!==200)throw new Error(data.responseDetails||'翻訳サービスからエラーが返されました。');
+  return data.responseData?.translatedText||'';
+}
+translateBtn.addEventListener('click',async()=>{
+  const text=source.value.trim();
+  if(!text){status.textContent='先に英文を貼り付けてください。';source.focus();return}
+  translateBtn.disabled=true;translateBtn.textContent='翻訳中…';status.textContent='長文を順番に翻訳しています。少しお待ちください。';
+  try{
+    const parts=chunksByParagraph(text), translated=[];
+    for(let i=0;i<parts.length;i++){
+      if(!parts[i]){translated.push('');continue}
+      status.textContent=`翻訳中… ${i+1} / ${parts.length}`;
+      translated.push(await translatePart(parts[i]));
+      if(i<parts.length-1)await new Promise(r=>setTimeout(r,180));
+    }
+    result.textContent=translated.join('\n\n').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+    result.classList.remove('placeholder');status.textContent='翻訳できました。気になる箇所は原文も確認してください。';
+    document.getElementById('original').textContent=text;
+  }catch(e){status.textContent='うまく翻訳できませんでした。通信状況を確認して、もう一度お試しください。';}
+  finally{translateBtn.disabled=false;translateBtn.textContent='日本語に翻訳する'}
+});
+document.getElementById('clear').addEventListener('click',()=>{source.value='';result.textContent='翻訳結果がここに表示されます。';result.classList.add('placeholder');status.textContent='';document.getElementById('original').textContent='';document.getElementById('original').classList.add('hidden');document.getElementById('count').textContent='0 文字';source.focus()});
+document.getElementById('smaller').addEventListener('click',()=>changeSize(-1));
+document.getElementById('larger').addEventListener('click',()=>changeSize(1));
+const size=document.getElementById('size');
+function changeSize(delta){size.value=Math.max(16,Math.min(30,Number(size.value)+delta));applySize()}
+function applySize(){document.documentElement.style.setProperty('--jp-size',size.value+'px');document.getElementById('sizeLabel').textContent=size.value+' px'}
+size.addEventListener('input',applySize);
+document.getElementById('copy').addEventListener('click',async()=>{const text=result.classList.contains('placeholder')?'':result.textContent;if(!text){status.textContent='コピーする翻訳文がありません。';return}try{await navigator.clipboard.writeText(text);status.textContent='翻訳文をコピーしました。'}catch(e){const range=document.createRange();range.selectNodeContents(result);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);status.textContent='翻訳文を選択しました。長押ししてコピーしてください。'}});
+document.getElementById('toggle').addEventListener('click',()=>{const el=document.getElementById('original');el.classList.toggle('hidden');document.getElementById('toggle').textContent=el.classList.contains('hidden')?'原文を表示':'原文を隠す';if(!el.textContent)el.textContent=source.value||'まだ原文がありません。'});
+</script>
+</body>
+</html>
