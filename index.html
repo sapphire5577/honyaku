@@ -50,6 +50,12 @@ footer{max-width:850px;margin:auto;padding:0 18px 28px;color:var(--muted);font-s
       <button class="primary" id="translate">日本語に翻訳する</button>
       <button class="secondary" id="clear">クリア</button>
     </div>
+    <div class="actions">
+      <button class="secondary" id="copySource">英文をコピー</button>
+      <button class="secondary" id="deepl">DeepLで比較</button>
+      <button class="secondary" id="google">Google翻訳で比較</button>
+    </div>
+    <p class="small" style="margin:9px 0 0">別の訳を見たいときは、英文をコピーするか翻訳サイトを開いて比較できます。</p>
     <div class="status" id="status" role="status"></div>
   </section>
   <section class="panel">
@@ -70,7 +76,7 @@ footer{max-width:850px;margin:auto;padding:0 18px 28px;color:var(--muted);font-s
   </section>
 </main>
 <footer>
-  翻訳にはインターネット接続が必要です。入力した英文は翻訳サービス（MyMemory）に送信されます。個人情報や機密情報は貼り付けないでください。長文は分割して翻訳するため、文脈によっては訳が不自然になることがあります。
+  翻訳にはインターネット接続が必要です。通常の翻訳では英文がMyMemoryに送信されます。「DeepLで比較」「Google翻訳で比較」を押すと、入力した英文を含むURLで各サイトを開きます。個人情報や機密情報は貼り付けないでください。長文は分割して翻訳するため、文脈によっては訳が不自然になることがあります。
 </footer>
 <script>
 const source=document.getElementById('source'), result=document.getElementById('result'), status=document.getElementById('status');
@@ -118,6 +124,30 @@ translateBtn.addEventListener('click',async()=>{
     document.getElementById('original').textContent=text;
   }catch(e){status.textContent='うまく翻訳できませんでした。通信状況を確認して、もう一度お試しください。';}
   finally{translateBtn.disabled=false;translateBtn.textContent='日本語に翻訳する'}
+});
+async function copyText(text, successMessage, emptyMessage){
+  if(!text.trim()){status.textContent=emptyMessage;return}
+  try{
+    await navigator.clipboard.writeText(text);
+    status.textContent=successMessage;
+  }catch(e){
+    source.focus();
+    source.select();
+    status.textContent='英文を選択しました。長押しして「コピー」を選んでください。';
+  }
+}
+document.getElementById('copySource').addEventListener('click',()=>copyText(source.value,'英文をコピーしました。','コピーする英文がありません。'));
+document.getElementById('deepl').addEventListener('click',()=>{
+  const text=source.value.trim();
+  if(!text){status.textContent='先に英文を貼り付けてください。';source.focus();return}
+  window.open('https://www.deepl.com/translator#en/ja/'+encodeURIComponent(text),'_blank','noopener');
+  status.textContent='DeepLを開きました。長文の場合は、うまく引き継がれないことがあります。';
+});
+document.getElementById('google').addEventListener('click',()=>{
+  const text=source.value.trim();
+  if(!text){status.textContent='先に英文を貼り付けてください。';source.focus();return}
+  window.open('https://translate.google.com/?sl=en&tl=ja&text='+encodeURIComponent(text)+'&op=translate','_blank','noopener');
+  status.textContent='Google翻訳を開きました。長文の場合は、うまく引き継がれないことがあります。';
 });
 document.getElementById('clear').addEventListener('click',()=>{source.value='';result.textContent='翻訳結果がここに表示されます。';result.classList.add('placeholder');status.textContent='';document.getElementById('original').textContent='';document.getElementById('original').classList.add('hidden');document.getElementById('count').textContent='0 文字';source.focus()});
 document.getElementById('smaller').addEventListener('click',()=>changeSize(-1));
